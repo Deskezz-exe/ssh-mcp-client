@@ -6,11 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ssh-mcp-client</title>
     <script type="module" src="/src/main.ts" defer></script>
+    <script type="module" src="/src/terminal.ts" defer></script>
   </head>
 
   <body>
     <div id="app">
-      <div id="placeholder">ssh-mcp-client</div>
+      <div id="tab-bar">
+        <div id="tab-home" class="tab active">🏠 Серверы</div>
+        <div id="session-tabs"></div>
+      </div>
+
+      <main id="main">
+        <section id="dashboard">
+          <div id="server-grid"></div>
+          <button id="add-server-btn" type="button">+ Добавить сервер</button>
+        </section>
+
+        <div id="terminals"></div>
+      </main>
+    </div>
+
+    <div id="add-server-overlay">
+      <form id="add-server-form">
+        <h3>Новый сервер</h3>
+        <input id="f-name" placeholder="Название" required />
+        <input id="f-host" placeholder="Хост (IP или домен)" required />
+        <input id="f-port" placeholder="Порт" value="22" required />
+        <input id="f-username" placeholder="Пользователь" required />
+        <input id="f-password" placeholder="Пароль" type="password" required />
+        <div id="add-server-actions">
+          <button type="button" id="add-server-cancel">Отмена</button>
+          <button type="submit">Добавить</button>
+        </div>
+      </form>
     </div>
   </body>
 </html>

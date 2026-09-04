@@ -19,12 +19,258 @@ body {
   height: 100vh;
   width: 100vw;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
 }
 
-#placeholder {
-  font-size: 20px;
-  letter-spacing: 0.04em;
+/* Tab bar */
+
+#tab-bar {
+  display: flex;
+  background: #181818;
+  border-bottom: 1px solid #2a2a2a;
+  min-height: 34px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+#session-tabs {
+  display: flex;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #aaa;
+  cursor: pointer;
+  border-right: 1px solid #2a2a2a;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tab.active {
+  background: #1e1e1e;
+  color: #fff;
+}
+
+.tab-close {
+  color: #777;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+.tab-close:hover {
+  color: #fff;
+  background: #b03030;
+}
+
+/* Main area */
+
+#main {
+  flex-grow: 1;
+  position: relative;
+  min-height: 0;
+}
+
+#dashboard {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+#server-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+#grid-empty {
+  color: #777;
+  font-size: 14px;
+  padding: 20px 0;
+}
+
+.server-card {
+  position: relative;
+  background: #1c1c1c;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.server-card:hover {
+  border-color: #3a3a3a;
+  transform: translateY(-1px);
+}
+
+.server-card.selected {
+  border-color: #4577d8;
+}
+
+.server-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.server-card .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+}
+
+.server-card .dot.on {
+  background: #4caf50;
+}
+
+.server-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.server-card-target {
+  font-size: 12px;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 8px;
+}
+
+.server-card-hint {
+  font-size: 11px;
   color: #666;
+}
+
+.server-card .delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #777;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.server-card:hover .delete-btn {
+  opacity: 1;
+}
+
+.server-card .delete-btn:hover {
+  color: #fff;
+  background: #b03030;
+}
+
+#add-server-btn {
+  align-self: flex-start;
+  background: #3568c9;
+  border: none;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#add-server-btn:hover {
+  background: #4577d8;
+}
+
+/* Terminals */
+
+.terminal-container {
+  position: absolute;
+  inset: 0;
+  padding: 6px;
+  display: none;
+}
+
+/* Add-server modal */
+
+#add-server-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+#add-server-form {
+  width: min(360px, 90vw);
+  background: #1c1c1c;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#add-server-form h3 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+}
+
+#add-server-form input {
+  background: #202020;
+  border: 1px solid #333;
+  color: #eee;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+#add-server-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+#add-server-actions button {
+  border: none;
+  border-radius: 4px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#add-server-cancel {
+  background: #2a2a2a;
+  color: #ccc;
+}
+
+#add-server-cancel:hover {
+  background: #333;
+}
+
+#add-server-actions button[type="submit"] {
+  background: #3568c9;
+  color: #fff;
+}
+
+#add-server-actions button[type="submit"]:hover {
+  background: #4577d8;
 }
