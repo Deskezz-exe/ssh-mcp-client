@@ -43,7 +43,6 @@
   --text-dim: #1f8f1f;
   --accent: #00ff41;
   --accent-hover: #33ff66;
-  --font: "Consolas", "Cascadia Mono", monospace;
 }
 
 :root[data-theme="claude"] {
@@ -69,6 +68,7 @@ html,
 body {
   margin: 0;
   height: 100%;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
@@ -283,6 +283,7 @@ body {
   inset: 0;
   padding: 6px;
   display: none;
+  overflow: hidden;
 }
 
 /* Add-server modal */
@@ -440,6 +441,15 @@ body {
   border-color: var(--border-strong);
 }
 
+.theme-option:focus {
+  outline: none;
+}
+
+.theme-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .theme-option.active {
   border-color: var(--accent);
 }
@@ -450,22 +460,26 @@ body {
   border-radius: 50%;
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.15);
+  /* conic-gradient gives a true half/half split through the circle's
+     center; linear-gradient's 50%/50% stop is measured against the
+     square bounding box, which left a visible seam at the diagonal
+     where it met the round border. */
 }
 
 .theme-swatch-dark {
-  background: linear-gradient(135deg, #121212 50%, #3568c9 50%);
+  background: conic-gradient(#121212 0deg 180deg, #3568c9 180deg 360deg);
 }
 
 .theme-swatch-light {
-  background: linear-gradient(135deg, #f4f4f5 50%, #2f5fc4 50%);
+  background: conic-gradient(#f4f4f5 0deg 180deg, #2f5fc4 180deg 360deg);
 }
 
 .theme-swatch-hacker {
-  background: linear-gradient(135deg, #000000 50%, #00ff41 50%);
+  background: conic-gradient(#000000 0deg 180deg, #00ff41 180deg 360deg);
 }
 
 .theme-swatch-claude {
-  background: linear-gradient(135deg, #1e1a17 50%, #d97757 50%);
+  background: conic-gradient(#1e1a17 0deg 180deg, #d97757 180deg 360deg);
 }
 
 /* Keybindings */
