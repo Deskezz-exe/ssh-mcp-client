@@ -65,6 +65,7 @@ pub fn run() {
             commands::list_servers,
             commands::save_profile,
             commands::delete_profile,
+            commands::set_favorite,
             commands::open_terminal,
             commands::write_pty,
             commands::resize_pty,

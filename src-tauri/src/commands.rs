@@ -39,6 +39,7 @@ pub async fn save_profile(
         port,
         username,
         host_key_fingerprint: None,
+        favorite: false,
     };
     profiles::upsert(&state.app_data_dir, profile.clone()).map_err(to_str_err)?;
     keychain::set_password(&id, &password).map_err(to_str_err)?;
@@ -50,6 +51,11 @@ pub async fn delete_profile(state: State<'_, Arc<AppState>>, server_id: String) 
     state.sessions.lock().unwrap().remove(&server_id);
     let _ = keychain::delete_password(&server_id);
     profiles::delete(&state.app_data_dir, &server_id).map_err(to_str_err)
+}
+
+#[tauri::command]
+pub async fn set_favorite(state: State<'_, Arc<AppState>>, server_id: String, favorite: bool) -> CmdResult<()> {
+    profiles::set_favorite(&state.app_data_dir, &server_id, favorite).map_err(to_str_err)
 }
 
 #[tauri::command]

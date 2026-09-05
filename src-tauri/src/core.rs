@@ -23,6 +23,7 @@ pub struct ServerSummary {
     pub port: u16,
     pub username: String,
     pub connected: bool,
+    pub favorite: bool,
 }
 
 #[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
@@ -39,17 +40,21 @@ pub struct CommandOutcome {
 pub fn list_servers(state: &AppState) -> Result<Vec<ServerSummary>, AppError> {
     let profiles = profiles::load(&state.app_data_dir)?;
     let sessions = state.sessions.lock().unwrap();
-    Ok(profiles
+    let mut summaries: Vec<ServerSummary> = profiles
         .into_iter()
         .map(|p| ServerSummary {
             connected: sessions.contains_key(&p.id),
+            favorite: p.favorite,
             id: p.id,
             name: p.name,
             host: p.host,
             port: p.port,
             username: p.username,
         })
-        .collect())
+        .collect();
+    // Favorites first, otherwise keep the saved order.
+    summaries.sort_by_key(|s| !s.favorite);
+    Ok(summaries)
 }
 
 /// Returns the existing SSH session for `server_id` if one is open

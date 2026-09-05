@@ -13,6 +13,8 @@ pub struct ServerProfile {
     pub username: String,
     #[serde(default)]
     pub host_key_fingerprint: Option<String>,
+    #[serde(default)]
+    pub favorite: bool,
 }
 
 fn profiles_path(app_data_dir: &Path) -> PathBuf {
@@ -59,6 +61,14 @@ pub fn set_host_key_fingerprint(app_data_dir: &Path, id: &str, fingerprint: &str
     let mut profiles = load(app_data_dir)?;
     if let Some(p) = profiles.iter_mut().find(|p| p.id == id) {
         p.host_key_fingerprint = Some(fingerprint.to_string());
+    }
+    save(app_data_dir, &profiles)
+}
+
+pub fn set_favorite(app_data_dir: &Path, id: &str, favorite: bool) -> Result<(), AppError> {
+    let mut profiles = load(app_data_dir)?;
+    if let Some(p) = profiles.iter_mut().find(|p| p.id == id) {
+        p.favorite = favorite;
     }
     save(app_data_dir, &profiles)
 }
