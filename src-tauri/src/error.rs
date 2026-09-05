@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum AppError {
     #[error("ssh error: {0}")]
     Ssh(#[from] russh::Error),
+    #[error("sftp error: {0}")]
+    Sftp(#[from] russh_sftp::client::error::Error),
     #[error("server not found: {0}")]
     ServerNotFound(String),
     #[error("authentication failed")]

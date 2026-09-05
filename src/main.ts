@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openTerminal, showTerminal, closeTerminal, hasTerminal, refit } from "./terminal";
 import { colorForServer } from "./cardColors";
 import { showContextMenu } from "./contextMenu";
+import { openSftpView, closeSftpView } from "./sftp";
 
 interface ServerSummary {
   id: string;
@@ -105,7 +106,8 @@ async function toggleFavorite(s: ServerSummary): Promise<void> {
 
 async function deleteServer(s: ServerSummary): Promise<void> {
   closeTerminal(s.id);
-  document.getElementById(`sftp-${s.id}`)?.remove();
+  closeSftpView(s.id);
+  document.getElementById(tabKey("sftp", s.id))?.remove();
   document.getElementById(`tab-${tabKey("term", s.id)}`)?.remove();
   document.getElementById(`tab-${tabKey("sftp", s.id)}`)?.remove();
   if (activeTab === tabKey("term", s.id) || activeTab === tabKey("sftp", s.id)) {
@@ -134,7 +136,6 @@ function ensureSftpContainer(serverId: string): HTMLElement {
     container = document.createElement("div");
     container.id = tabKey("sftp", serverId);
     container.className = "sftp-container";
-    container.innerHTML = `<div class="sftp-placeholder">Файловый менеджер появится в следующем обновлении.</div>`;
     terminalsEl.appendChild(container);
   }
   return container;
@@ -171,6 +172,7 @@ function closeTabByKind(kind: TabKind, serverId: string): void {
   if (kind === "term") {
     closeTerminal(serverId);
   } else {
+    closeSftpView(serverId);
     document.getElementById(key)?.remove();
   }
   document.getElementById(`tab-${key}`)?.remove();
@@ -223,8 +225,9 @@ async function connectAndOpen(server: ServerSummary): Promise<void> {
 
 async function openSftpTab(server: ServerSummary): Promise<void> {
   ensureTab("sftp", server);
-  ensureSftpContainer(server.id);
+  const container = ensureSftpContainer(server.id);
   setActiveTab(tabKey("sftp", server.id));
+  await openSftpView(server.id, container);
   await refresh();
 }
 

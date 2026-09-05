@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex as StdMutex};
 use base64::Engine;
 use russh::keys::*;
 use russh::*;
+use russh_sftp::client::SftpSession;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
@@ -133,6 +134,16 @@ impl SshSession {
             stderr: String::from_utf8_lossy(&stderr).into_owned(),
             exit_code,
         })
+    }
+
+    /// Opens a fresh SFTP subsystem channel over the existing connection.
+    /// Each call negotiates a new SFTP session; callers should do one
+    /// batch of work with it and let it drop rather than holding it open.
+    pub async fn open_sftp(&self) -> Result<SftpSession, AppError> {
+        let channel = self.handle.channel_open_session().await?;
+        channel.request_subsystem(true, "sftp").await?;
+        let sftp = SftpSession::new(channel.into_stream()).await?;
+        Ok(sftp)
     }
 
     /// Opens an interactive PTY + shell on a fresh channel and starts a

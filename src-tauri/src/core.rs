@@ -4,7 +4,9 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use russh_sftp::protocol::OpenFlags;
 use serde::Serialize;
+use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 use crate::audit::{self, dangerous};
@@ -176,4 +178,62 @@ pub async fn confirm_dangerous_command(state: &AppState, token: &str) -> Result<
         confirmation_token: None,
         reason: None,
     })
+}
+
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub struct RemoteEntry {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    pub size: u64,
+}
+
+/// Lists a remote directory over a fresh SFTP subsystem channel (same SSH
+/// connection, no extra TCP/SSH handshake). Directories sort first.
+pub async fn list_remote_directory(state: &AppState, server_id: &str, path: &str) -> Result<Vec<RemoteEntry>, AppError> {
+    let session = ensure_connected(state, server_id).await?;
+    let sftp = session.open_sftp().await?;
+    let dir = sftp.read_dir(path).await?;
+
+    let mut entries: Vec<RemoteEntry> = dir
+        .map(|entry| RemoteEntry {
+            name: entry.file_name(),
+            path: entry.path(),
+            is_dir: entry.file_type().is_dir(),
+            size: entry.metadata().len(),
+        })
+        .collect();
+    entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+    Ok(entries)
+}
+
+/// Uploads a file from this machine (where the app runs) to the remote
+/// server over SFTP. Returns the number of bytes sent.
+pub async fn upload_file(state: &AppState, server_id: &str, local_path: &str, remote_path: &str) -> Result<u64, AppError> {
+    let session = ensure_connected(state, server_id).await?;
+    let data = tokio::fs::read(local_path).await?;
+    let len = data.len() as u64;
+
+    let sftp = session.open_sftp().await?;
+    let mut file = sftp
+        .open_with_flags(remote_path, OpenFlags::CREATE | OpenFlags::TRUNCATE | OpenFlags::WRITE)
+        .await?;
+    file.write_all(&data).await?;
+    file.shutdown().await?;
+    Ok(len)
+}
+
+/// Downloads a file from the remote server to this machine over SFTP.
+/// Returns the number of bytes received.
+pub async fn download_file(state: &AppState, server_id: &str, remote_path: &str, local_path: &str) -> Result<u64, AppError> {
+    let session = ensure_connected(state, server_id).await?;
+    let sftp = session.open_sftp().await?;
+    let data = sftp.read(remote_path).await?;
+    let len = data.len() as u64;
+
+    if let Some(parent) = std::path::Path::new(local_path).parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    tokio::fs::write(local_path, &data).await?;
+    Ok(len)
 }

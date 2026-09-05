@@ -71,6 +71,11 @@ pub fn run() {
             commands::resize_pty,
             commands::disconnect_server,
             commands::mcp_server_info,
+            commands::list_remote_directory,
+            commands::upload_to_server,
+            commands::download_from_server,
+            commands::get_home_dir,
+            commands::list_local_directory,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

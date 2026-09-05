@@ -42,6 +42,7 @@ schemars = "1.2.2"
 chrono = { version = "0.4.45", features = ["serde"] }
 axum = "0.8.9"
 regex = "1.13.1"
+russh-sftp = "2.4.0"
 
 # Trimmed debug info: much smaller/faster intermediate build artifacts,
 # which also helps avoid antivirus-scan lock races on Windows (see the
