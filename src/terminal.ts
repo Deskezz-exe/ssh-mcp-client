@@ -3,6 +3,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getTheme, xtermThemeFor, type ThemeName } from "./theme";
+import { getKeybindings, matchesCombo } from "./keybindings";
 
 interface TerminalSession {
   serverId: string;
@@ -36,15 +37,17 @@ export async function openTerminal(serverId: string, container: HTMLElement): Pr
   term.open(container);
   fit.fit();
 
-  // Copy = Shift+C, paste = Shift+V (Ctrl+C/Ctrl+V stay as SIGINT / whatever
-  // the remote shell does with them). Both preventDefault() in addition to
+  // Copy/paste use whatever combo is configured in Settings (default
+  // Shift+C / Shift+V, since Ctrl+C/Ctrl+V stay as SIGINT / whatever the
+  // remote shell does with them). Both preventDefault() in addition to
   // returning false — without it the browser still delivers the keypress to
   // xterm's hidden input textarea, which used to leak a literal "v"/"c"
   // character into the terminal right before the actual paste/copy ran.
   term.attachCustomKeyEventHandler((event) => {
     if (event.type !== "keydown") return true;
-    const onlyShift = event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
-    if (onlyShift && event.key.toLowerCase() === "c") {
+    const bindings = getKeybindings();
+
+    if (matchesCombo(event, bindings.copy)) {
       event.preventDefault();
       const selection = term.getSelection();
       if (selection) {
@@ -52,7 +55,7 @@ export async function openTerminal(serverId: string, container: HTMLElement): Pr
       }
       return false;
     }
-    if (onlyShift && event.key.toLowerCase() === "v") {
+    if (matchesCombo(event, bindings.paste)) {
       event.preventDefault();
       navigator.clipboard.readText().then((text) => {
         if (text) void invoke("write_pty", { serverId, data: text });

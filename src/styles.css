@@ -467,3 +467,66 @@ body {
 .theme-swatch-claude {
   background: linear-gradient(135deg, #1e1a17 50%, #d97757 50%);
 }
+
+/* Keybindings */
+
+#settings-body h4:not(:first-child) {
+  margin-top: 18px;
+}
+
+#keybind-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.keybind-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.keybind-label {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.keybind-box {
+  min-width: 160px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: center;
+}
+
+.keybind-box:hover {
+  border-color: var(--border-strong);
+}
+
+.keybind-box.listening {
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: keybind-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes keybind-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+#keybind-hint {
+  margin: 10px 0 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
