@@ -124,7 +124,7 @@ impl ServertoolMcp {
     async fn list_directory(
         &self,
         Parameters(ListDirectoryParams { server_id, path }): Parameters<ListDirectoryParams>,
-    ) -> Result<Json<Vec<core::RemoteEntry>>, String> {
+    ) -> Result<Json<core::RemoteListing>, String> {
         core::list_remote_directory(&self.state, &server_id, &path)
             .await
             .map(Json)

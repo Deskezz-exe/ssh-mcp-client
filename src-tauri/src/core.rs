@@ -186,25 +186,56 @@ pub struct RemoteEntry {
     pub path: String,
     pub is_dir: bool,
     pub size: u64,
+    /// Unix timestamp (seconds), if the server reported one.
+    pub modified: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub struct RemoteListing {
+    /// The resolved absolute path that was actually listed — e.g. `path`
+    /// of "." resolves to something like "/root", so the UI can show
+    /// where it really is instead of the literal request string.
+    pub current: String,
+    pub entries: Vec<RemoteEntry>,
+}
+
+fn unix_secs(t: std::io::Result<std::time::SystemTime>) -> Option<u64> {
+    t.ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
 }
 
 /// Lists a remote directory over a fresh SFTP subsystem channel (same SSH
 /// connection, no extra TCP/SSH handshake). Directories sort first.
-pub async fn list_remote_directory(state: &AppState, server_id: &str, path: &str) -> Result<Vec<RemoteEntry>, AppError> {
+pub async fn list_remote_directory(state: &AppState, server_id: &str, path: &str) -> Result<RemoteListing, AppError> {
     let session = ensure_connected(state, server_id).await?;
     let sftp = session.open_sftp().await?;
-    let dir = sftp.read_dir(path).await?;
+    let current = sftp.canonicalize(path).await?;
+    let dir = sftp.read_dir(&current).await?;
 
     let mut entries: Vec<RemoteEntry> = dir
-        .map(|entry| RemoteEntry {
-            name: entry.file_name(),
-            path: entry.path(),
-            is_dir: entry.file_type().is_dir(),
-            size: entry.metadata().len(),
+        .map(|entry| {
+            let metadata = entry.metadata();
+            RemoteEntry {
+                name: entry.file_name(),
+                path: entry.path(),
+                is_dir: entry.file_type().is_dir(),
+                size: metadata.len(),
+                modified: unix_secs(metadata.modified()),
+            }
         })
         .collect();
     entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.to_lowercase().cmp(&b.name.to_lowercase())));
-    Ok(entries)
+    Ok(RemoteListing { current, entries })
+}
+
+/// Deletes a single file on the remote server. Never used for directories —
+/// this is a deliberately narrow, GUI-only, human-confirmed action.
+pub async fn delete_remote_file(state: &AppState, server_id: &str, path: &str) -> Result<(), AppError> {
+    let session = ensure_connected(state, server_id).await?;
+    let sftp = session.open_sftp().await?;
+    sftp.remove_file(path).await?;
+    Ok(())
 }
 
 /// Uploads a file from this machine (where the app runs) to the remote

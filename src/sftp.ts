@@ -1,10 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
+import { showContextMenu, type ContextMenuItem } from "./contextMenu";
 
 interface RemoteEntry {
   name: string;
   path: string;
   is_dir: boolean;
   size: number;
+  modified: number | null;
+}
+
+interface RemoteListing {
+  current: string;
+  entries: RemoteEntry[];
 }
 
 interface LocalEntry {
@@ -12,6 +19,7 @@ interface LocalEntry {
   path: string;
   is_dir: boolean;
   size: number;
+  modified: number | null;
 }
 
 interface LocalListing {
@@ -23,7 +31,6 @@ type Side = "local" | "remote";
 
 interface PaneState {
   path: string;
-  selected: string | null;
 }
 
 interface SftpViewState {
@@ -45,6 +52,13 @@ function formatSize(bytes: number): string {
     i++;
   }
   return `${val.toFixed(1)} ${units[i]}`;
+}
+
+function formatDate(unixSeconds: number | null): string {
+  if (unixSeconds == null) return "";
+  const d = new Date(unixSeconds * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function joinRemote(dir: string, name: string): string {
@@ -70,10 +84,7 @@ export async function openSftpView(serverId: string, container: HTMLElement): Pr
         </div>
         <div class="sftp-list"></div>
       </div>
-      <div class="sftp-transfer-controls">
-        <button type="button" class="sftp-arrow-right" title="Загрузить на сервер" disabled>→</button>
-        <button type="button" class="sftp-arrow-left" title="Скачать на компьютер" disabled>←</button>
-      </div>
+      <div class="sftp-divider"></div>
       <div class="sftp-pane" data-side="remote">
         <div class="sftp-pane-header">Сервер</div>
         <div class="sftp-toolbar">
@@ -89,16 +100,13 @@ export async function openSftpView(serverId: string, container: HTMLElement): Pr
   const state: SftpViewState = {
     serverId,
     container,
-    local: { path: "", selected: null },
-    remote: { path: ".", selected: null },
+    local: { path: "" },
+    remote: { path: "." },
   };
   views.set(serverId, state);
 
   wirePane(state, "local");
   wirePane(state, "remote");
-
-  container.querySelector(".sftp-arrow-right")!.addEventListener("click", () => void transfer(state, "up"));
-  container.querySelector(".sftp-arrow-left")!.addEventListener("click", () => void transfer(state, "down"));
 
   try {
     state.local.path = await invoke<string>("get_home_dir");
@@ -128,6 +136,15 @@ function wirePane(state: SftpViewState, side: Side): void {
       state[side].path = pathInput.value;
       void loadPane(state, side);
     }
+  });
+
+  paneEl.querySelector(".sftp-list")!.addEventListener("contextmenu", (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest(".sftp-row")) return; // row has its own handler
+    e.preventDefault();
+    showContextMenu((e as MouseEvent).clientX, (e as MouseEvent).clientY, [
+      { label: "Обновить", onClick: () => void loadPane(state, side) },
+    ]);
   });
 }
 
@@ -163,12 +180,13 @@ async function loadPane(state: SftpViewState, side: Side): Promise<void> {
       pathInput.value = state.local.path;
       renderList(state, side, listing.entries, paneEl);
     } else {
-      const entries = await invoke<RemoteEntry[]>("list_remote_directory", {
+      const listing = await invoke<RemoteListing>("list_remote_directory", {
         serverId: state.serverId,
         path: state.remote.path,
       });
-      pathInput.value = state.remote.path;
-      renderList(state, side, entries, paneEl);
+      state.remote.path = listing.current;
+      pathInput.value = listing.current;
+      renderList(state, side, listing.entries, paneEl);
     }
   } catch (e) {
     listEl.innerHTML = `<div class="sftp-error"></div>`;
@@ -179,8 +197,6 @@ async function loadPane(state: SftpViewState, side: Side): Promise<void> {
 function renderList(state: SftpViewState, side: Side, entries: RemoteEntry[] | LocalEntry[], paneEl: HTMLElement): void {
   const listEl = paneEl.querySelector<HTMLElement>(".sftp-list")!;
   listEl.innerHTML = "";
-  state[side].selected = null;
-  updateArrowButtons(state);
 
   for (const entry of entries) {
     const row = document.createElement("div");
@@ -192,6 +208,11 @@ function renderList(state: SftpViewState, side: Side, entries: RemoteEntry[] | L
     row.appendChild(name);
 
     if (!entry.is_dir) {
+      const date = document.createElement("span");
+      date.className = "sftp-date";
+      date.textContent = formatDate(entry.modified);
+      row.appendChild(date);
+
       const size = document.createElement("span");
       size.className = "sftp-size";
       size.textContent = formatSize(entry.size);
@@ -202,12 +223,32 @@ function renderList(state: SftpViewState, side: Side, entries: RemoteEntry[] | L
       if (entry.is_dir) {
         state[side].path = entry.path;
         void loadPane(state, side);
-        return;
       }
-      paneEl.querySelectorAll(".sftp-row.selected").forEach((el) => el.classList.remove("selected"));
-      row.classList.add("selected");
-      state[side].selected = entry.path;
-      updateArrowButtons(state);
+    });
+
+    if (!entry.is_dir) {
+      row.addEventListener("dblclick", () => void quickTransfer(state, side, entry));
+    }
+
+    row.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const items: ContextMenuItem[] = [];
+      if (!entry.is_dir) {
+        items.push({
+          label: side === "local" ? "Загрузить на сервер" : "Скачать на компьютер",
+          onClick: () => void quickTransfer(state, side, entry),
+        });
+      }
+      items.push({ label: "Обновить", onClick: () => void loadPane(state, side) });
+      if (side === "remote" && !entry.is_dir) {
+        items.push({
+          label: "Удалить с сервера",
+          danger: true,
+          onClick: () => void deleteRemote(state, entry as RemoteEntry),
+        });
+      }
+      showContextMenu(e.clientX, e.clientY, items);
     });
 
     listEl.appendChild(row);
@@ -221,35 +262,32 @@ function renderList(state: SftpViewState, side: Side, entries: RemoteEntry[] | L
   }
 }
 
-function updateArrowButtons(state: SftpViewState): void {
-  const rightArrow = state.container.querySelector<HTMLButtonElement>(".sftp-arrow-right")!;
-  const leftArrow = state.container.querySelector<HTMLButtonElement>(".sftp-arrow-left")!;
-  rightArrow.disabled = !state.local.selected;
-  leftArrow.disabled = !state.remote.selected;
-}
-
-async function transfer(state: SftpViewState, direction: "up" | "down"): Promise<void> {
-  if (direction === "up") {
-    const localPath = state.local.selected;
-    if (!localPath) return;
-    const filename = localPath.split(/[\\/]/).pop()!;
-    const remotePath = joinRemote(state.remote.path, filename);
+async function quickTransfer(state: SftpViewState, side: Side, entry: RemoteEntry | LocalEntry): Promise<void> {
+  if (side === "local") {
+    const remotePath = joinRemote(state.remote.path, entry.name);
     try {
-      await invoke("upload_to_server", { serverId: state.serverId, localPath, remotePath });
+      await invoke("upload_to_server", { serverId: state.serverId, localPath: entry.path, remotePath });
       await loadPane(state, "remote");
     } catch (e) {
       alert(`Не удалось загрузить файл: ${String(e)}`);
     }
   } else {
-    const remotePath = state.remote.selected;
-    if (!remotePath) return;
-    const filename = remotePath.split("/").pop()!;
-    const localPath = joinLocal(state.local.path, filename);
+    const localPath = joinLocal(state.local.path, entry.name);
     try {
-      await invoke("download_from_server", { serverId: state.serverId, remotePath, localPath });
+      await invoke("download_from_server", { serverId: state.serverId, remotePath: entry.path, localPath });
       await loadPane(state, "local");
     } catch (e) {
       alert(`Не удалось скачать файл: ${String(e)}`);
     }
+  }
+}
+
+async function deleteRemote(state: SftpViewState, entry: RemoteEntry): Promise<void> {
+  if (!confirm(`Удалить "${entry.name}" с сервера? Это необратимо.`)) return;
+  try {
+    await invoke("delete_remote_file", { serverId: state.serverId, path: entry.path });
+    await loadPane(state, "remote");
+  } catch (e) {
+    alert(`Не удалось удалить файл: ${String(e)}`);
   }
 }

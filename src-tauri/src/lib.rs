@@ -72,6 +72,7 @@ pub fn run() {
             commands::disconnect_server,
             commands::mcp_server_info,
             commands::list_remote_directory,
+            commands::delete_remote_file,
             commands::upload_to_server,
             commands::download_from_server,
             commands::get_home_dir,

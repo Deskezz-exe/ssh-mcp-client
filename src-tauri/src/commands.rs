@@ -107,11 +107,17 @@ pub async fn list_remote_directory(
     state: State<'_, Arc<AppState>>,
     server_id: String,
     path: String,
-) -> CmdResult<Vec<core::RemoteEntry>> {
+) -> CmdResult<core::RemoteListing> {
     let state = state.inner().clone();
     core::list_remote_directory(&state, &server_id, &path)
         .await
         .map_err(to_str_err)
+}
+
+#[tauri::command]
+pub async fn delete_remote_file(state: State<'_, Arc<AppState>>, server_id: String, path: String) -> CmdResult<()> {
+    let state = state.inner().clone();
+    core::delete_remote_file(&state, &server_id, &path).await.map_err(to_str_err)
 }
 
 #[tauri::command]
@@ -154,6 +160,14 @@ pub struct LocalEntry {
     pub path: String,
     pub is_dir: bool,
     pub size: u64,
+    /// Unix timestamp (seconds), if the OS reported one.
+    pub modified: Option<u64>,
+}
+
+fn unix_secs(t: std::io::Result<std::time::SystemTime>) -> Option<u64> {
+    t.ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -176,6 +190,7 @@ pub fn list_local_directory(path: String) -> CmdResult<LocalListing> {
             path: entry.path().to_string_lossy().into_owned(),
             is_dir: metadata.is_dir(),
             size: metadata.len(),
+            modified: unix_secs(metadata.modified()),
         });
     }
     entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.to_lowercase().cmp(&b.name.to_lowercase())));

@@ -351,7 +351,7 @@ body {
 .sftp-panes {
   height: 100%;
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .sftp-pane {
@@ -449,10 +449,20 @@ body {
   white-space: nowrap;
 }
 
+.sftp-date {
+  color: var(--text-dim);
+  font-size: 11px;
+  flex-shrink: 0;
+  width: 108px;
+  text-align: right;
+}
+
 .sftp-size {
   color: var(--text-dim);
   font-size: 11px;
   flex-shrink: 0;
+  width: 64px;
+  text-align: right;
 }
 
 .sftp-loading,
@@ -468,35 +478,10 @@ body {
   color: #e08080;
 }
 
-.sftp-transfer-controls {
+.sftp-divider {
   flex-shrink: 0;
-  width: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.sftp-transfer-controls button {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.sftp-transfer-controls button:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-
-.sftp-transfer-controls button:disabled {
-  background: var(--bg-hover);
-  color: var(--text-dim);
-  cursor: not-allowed;
+  width: 1px;
+  background: var(--border);
 }
 
 /* Context menu */
