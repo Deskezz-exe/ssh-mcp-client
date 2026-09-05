@@ -30,36 +30,6 @@
   --accent-hover: #3f6fd4;
 }
 
-:root[data-theme="hacker"] {
-  color-scheme: dark;
-  --bg: #000000;
-  --bg-panel: #050805;
-  --bg-card: #0a0f0a;
-  --bg-input: #0d120d;
-  --bg-hover: #10200f;
-  --border: #1a3d1a;
-  --border-strong: #2d6b2d;
-  --text: #33ff33;
-  --text-dim: #1f8f1f;
-  --accent: #00ff41;
-  --accent-hover: #33ff66;
-}
-
-:root[data-theme="claude"] {
-  color-scheme: dark;
-  --bg: #1e1a17;
-  --bg-panel: #241f1c;
-  --bg-card: #2a2420;
-  --bg-input: #2e2822;
-  --bg-hover: #362f28;
-  --border: #3a332c;
-  --border-strong: #4d443a;
-  --text: #f0e6df;
-  --text-dim: #a89a8c;
-  --accent: #d97757;
-  --accent-hover: #e58a6c;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -209,6 +179,7 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 6px;
+  padding-right: 14px;
 }
 
 .server-card .dot {
@@ -224,6 +195,8 @@ body {
 }
 
 .server-card-name {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   overflow: hidden;
@@ -246,9 +219,22 @@ body {
 }
 
 .star {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-dim);
+}
+
+.star.filled {
   color: #e0b03a;
-  font-size: 12px;
-  margin-left: 2px;
+}
+
+.star:hover {
+  color: #e0b03a;
 }
 
 .server-card .delete-btn {
@@ -592,14 +578,6 @@ body {
 
 .theme-swatch-light {
   background: conic-gradient(#f4f4f5 0deg 180deg, #2f5fc4 180deg 360deg);
-}
-
-.theme-swatch-hacker {
-  background: conic-gradient(#000000 0deg 180deg, #00ff41 180deg 360deg);
-}
-
-.theme-swatch-claude {
-  background: conic-gradient(#1e1a17 0deg 180deg, #d97757 180deg 360deg);
 }
 
 /* Keybindings */

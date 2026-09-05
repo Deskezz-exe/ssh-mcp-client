@@ -8,10 +8,7 @@
       (function () {
         try {
           var t = localStorage.getItem("theme");
-          document.documentElement.setAttribute(
-            "data-theme",
-            t === "light" || t === "hacker" || t === "claude" ? t : "dark",
-          );
+          document.documentElement.setAttribute("data-theme", t === "light" ? t : "dark");
         } catch (e) {
           document.documentElement.setAttribute("data-theme", "dark");
         }

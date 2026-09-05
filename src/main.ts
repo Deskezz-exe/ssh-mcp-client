@@ -52,11 +52,18 @@ function renderServerGrid(servers: ServerSummary[]): void {
       <div class="server-card-top">
         <span class="dot ${s.connected ? "on" : ""}"></span>
         <span class="server-card-name">${escapeHtml(s.name)}</span>
-        ${s.favorite ? '<span class="star" title="В избранном">★</span>' : ""}
+        <button type="button" class="star ${s.favorite ? "filled" : ""}" title="${
+          s.favorite ? "Убрать из избранного" : "Добавить в избранное"
+        }">${s.favorite ? "★" : "☆"}</button>
       </div>
       <div class="server-card-target">${escapeHtml(s.username)}@${escapeHtml(s.host)}:${s.port}</div>
       <div class="server-card-hint">Двойной клик — подключиться, ПКМ — меню</div>
     `;
+
+    card.querySelector(".star")!.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void toggleFavorite(s);
+    });
 
     card.addEventListener("click", () => {
       selectedServerId = s.id;
