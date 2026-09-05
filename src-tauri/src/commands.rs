@@ -121,6 +121,17 @@ pub async fn delete_remote_file(state: State<'_, Arc<AppState>>, server_id: Stri
 }
 
 #[tauri::command]
+pub async fn remote_file_exists(state: State<'_, Arc<AppState>>, server_id: String, path: String) -> CmdResult<bool> {
+    let state = state.inner().clone();
+    core::remote_path_exists(&state, &server_id, &path).await.map_err(to_str_err)
+}
+
+#[tauri::command]
+pub fn local_file_exists(path: String) -> CmdResult<bool> {
+    Ok(Path::new(&path).exists())
+}
+
+#[tauri::command]
 pub async fn upload_to_server(
     state: State<'_, Arc<AppState>>,
     server_id: String,

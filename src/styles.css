@@ -802,3 +802,65 @@ body {
   font-size: 11px;
   color: var(--text-dim);
 }
+
+/* Confirm dialog */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.confirm-box {
+  width: min(380px, 90vw);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.confirm-message {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-actions button {
+  border: none;
+  border-radius: 4px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.confirm-cancel {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.confirm-cancel:hover {
+  background: var(--border-strong);
+}
+
+.confirm-ok {
+  background: var(--accent);
+  color: #fff;
+}
+
+.confirm-ok:hover {
+  background: var(--accent-hover);
+}

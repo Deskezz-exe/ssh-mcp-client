@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { showContextMenu, type ContextMenuItem } from "./contextMenu";
+import { confirmDialog } from "./confirmDialog";
 
 interface RemoteEntry {
   name: string;
@@ -314,6 +315,15 @@ async function quickTransfer(state: SftpViewState, side: Side, entry: RemoteEntr
   if (side === "local") {
     const remotePath = joinRemote(state.remote.path, entry.name);
     try {
+      const exists = await invoke<boolean>("remote_file_exists", { serverId: state.serverId, path: remotePath });
+      if (exists) {
+        const ok = await confirmDialog(
+          `Файл "${entry.name}" уже есть на сервере. Заменить существующий файл на новый?`,
+          "Заменить",
+          "Отменить",
+        );
+        if (!ok) return;
+      }
       await invoke("upload_to_server", { serverId: state.serverId, localPath: entry.path, remotePath });
       await loadPane(state, "remote");
     } catch (e) {
@@ -322,6 +332,15 @@ async function quickTransfer(state: SftpViewState, side: Side, entry: RemoteEntr
   } else {
     const localPath = joinLocal(state.local.path, entry.name);
     try {
+      const exists = await invoke<boolean>("local_file_exists", { path: localPath });
+      if (exists) {
+        const ok = await confirmDialog(
+          `Файл "${entry.name}" уже есть на компьютере. Заменить существующий файл на новый?`,
+          "Заменить",
+          "Отменить",
+        );
+        if (!ok) return;
+      }
       await invoke("download_from_server", { serverId: state.serverId, remotePath: entry.path, localPath });
       await loadPane(state, "local");
     } catch (e) {
@@ -331,7 +350,8 @@ async function quickTransfer(state: SftpViewState, side: Side, entry: RemoteEntr
 }
 
 async function deleteRemote(state: SftpViewState, entry: RemoteEntry): Promise<void> {
-  if (!confirm(`Удалить "${entry.name}" с сервера? Это необратимо.`)) return;
+  const ok = await confirmDialog(`Удалить "${entry.name}" с сервера? Это необратимо.`, "Удалить", "Отменить");
+  if (!ok) return;
   try {
     await invoke("delete_remote_file", { serverId: state.serverId, path: entry.path });
     await loadPane(state, "remote");

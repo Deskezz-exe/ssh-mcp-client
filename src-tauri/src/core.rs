@@ -238,6 +238,14 @@ pub async fn delete_remote_file(state: &AppState, server_id: &str, path: &str) -
     Ok(())
 }
 
+/// Checks whether a path already exists on the remote server, so the GUI
+/// can ask before an upload/download silently overwrites something.
+pub async fn remote_path_exists(state: &AppState, server_id: &str, path: &str) -> Result<bool, AppError> {
+    let session = ensure_connected(state, server_id).await?;
+    let sftp = session.open_sftp().await?;
+    Ok(sftp.try_exists(path).await?)
+}
+
 /// Uploads a file from this machine (where the app runs) to the remote
 /// server over SFTP. Returns the number of bytes sent.
 pub async fn upload_file(state: &AppState, server_id: &str, local_path: &str, remote_path: &str) -> Result<u64, AppError> {

@@ -73,6 +73,8 @@ pub fn run() {
             commands::mcp_server_info,
             commands::list_remote_directory,
             commands::delete_remote_file,
+            commands::remote_file_exists,
+            commands::local_file_exists,
             commands::upload_to_server,
             commands::download_from_server,
             commands::get_home_dir,
