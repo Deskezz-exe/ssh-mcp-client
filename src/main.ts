@@ -1,6 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import { openTerminal, showTerminal, closeTerminal, hasTerminal, refit } from "./terminal";
-import { colorForServer } from "./cardColors";
 import { showContextMenu } from "./contextMenu";
 import { openSftpView, closeSftpView } from "./sftp";
 
@@ -48,7 +47,6 @@ function renderServerGrid(servers: ServerSummary[]): void {
   for (const s of servers) {
     const card = document.createElement("div");
     card.className = "server-card" + (s.id === selectedServerId ? " selected" : "");
-    card.style.setProperty("--card-accent", colorForServer(s.id));
     card.innerHTML = `
       <div class="server-card-top">
         <span class="dot ${s.connected ? "on" : ""}"></span>
@@ -57,8 +55,7 @@ function renderServerGrid(servers: ServerSummary[]): void {
           s.favorite ? "Убрать из избранного" : "Добавить в избранное"
         }">${s.favorite ? "★" : "☆"}</button>
       </div>
-      <div class="server-card-target">${escapeHtml(s.username)}@${escapeHtml(s.host)}:${s.port}</div>
-      <div class="server-card-hint">Двойной клик — подключиться, ПКМ — меню</div>
+      <div class="server-card-host">${escapeHtml(s.host)}</div>
     `;
 
     card.querySelector(".star")!.addEventListener("click", (e) => {

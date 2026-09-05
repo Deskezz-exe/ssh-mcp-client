@@ -70,6 +70,14 @@ function joinLocal(dir: string, name: string): string {
   return dir.endsWith("\\") || dir.endsWith("/") ? `${dir}${name}` : `${dir}${sep}${name}`;
 }
 
+const DND_MIME = "application/x-sftp-item";
+
+interface DragPayload {
+  side: Side;
+  name: string;
+  path: string;
+}
+
 export async function openSftpView(serverId: string, container: HTMLElement): Promise<void> {
   if (views.has(serverId)) return;
 
@@ -78,9 +86,14 @@ export async function openSftpView(serverId: string, container: HTMLElement): Pr
       <div class="sftp-pane" data-side="local">
         <div class="sftp-pane-header">Этот компьютер</div>
         <div class="sftp-toolbar">
-          <button type="button" class="sftp-up" title="Вверх">⬆</button>
+          <button type="button" class="sftp-up" title="Вверх">←</button>
           <input type="text" class="sftp-path" spellcheck="false" />
           <button type="button" class="sftp-go">Перейти</button>
+        </div>
+        <div class="sftp-columns">
+          <span class="sftp-col-name">Название</span>
+          <span class="sftp-col-size">Размер файла</span>
+          <span class="sftp-col-date">Последнее изменение</span>
         </div>
         <div class="sftp-list"></div>
       </div>
@@ -88,9 +101,14 @@ export async function openSftpView(serverId: string, container: HTMLElement): Pr
       <div class="sftp-pane" data-side="remote">
         <div class="sftp-pane-header">Сервер</div>
         <div class="sftp-toolbar">
-          <button type="button" class="sftp-up" title="Вверх">⬆</button>
+          <button type="button" class="sftp-up" title="Вверх">←</button>
           <input type="text" class="sftp-path" spellcheck="false" />
           <button type="button" class="sftp-go">Перейти</button>
+        </div>
+        <div class="sftp-columns">
+          <span class="sftp-col-name">Название</span>
+          <span class="sftp-col-size">Размер файла</span>
+          <span class="sftp-col-date">Последнее изменение</span>
         </div>
         <div class="sftp-list"></div>
       </div>
@@ -138,13 +156,36 @@ function wirePane(state: SftpViewState, side: Side): void {
     }
   });
 
-  paneEl.querySelector(".sftp-list")!.addEventListener("contextmenu", (e) => {
+  const listEl = paneEl.querySelector<HTMLElement>(".sftp-list")!;
+
+  listEl.addEventListener("contextmenu", (e) => {
     const target = e.target as HTMLElement;
     if (target.closest(".sftp-row")) return; // row has its own handler
     e.preventDefault();
     showContextMenu((e as MouseEvent).clientX, (e as MouseEvent).clientY, [
       { label: "Обновить", onClick: () => void loadPane(state, side) },
     ]);
+  });
+
+  // Drag-and-drop is a copy, never a move: dropping a file from one pane
+  // onto the other pane uploads/downloads it, and always leaves the
+  // original where it was.
+  listEl.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = "copy";
+    listEl.classList.add("drag-over");
+  });
+  listEl.addEventListener("dragleave", () => {
+    listEl.classList.remove("drag-over");
+  });
+  listEl.addEventListener("drop", (e) => {
+    e.preventDefault();
+    listEl.classList.remove("drag-over");
+    const raw = e.dataTransfer?.getData(DND_MIME);
+    if (!raw) return;
+    const payload = JSON.parse(raw) as DragPayload;
+    if (payload.side === side) return; // dropped on its own pane, nothing to do
+    void quickTransfer(state, payload.side, { name: payload.name, path: payload.path } as RemoteEntry | LocalEntry);
   });
 }
 
@@ -208,15 +249,15 @@ function renderList(state: SftpViewState, side: Side, entries: RemoteEntry[] | L
     row.appendChild(name);
 
     if (!entry.is_dir) {
-      const date = document.createElement("span");
-      date.className = "sftp-date";
-      date.textContent = formatDate(entry.modified);
-      row.appendChild(date);
-
       const size = document.createElement("span");
       size.className = "sftp-size";
       size.textContent = formatSize(entry.size);
       row.appendChild(size);
+
+      const date = document.createElement("span");
+      date.className = "sftp-date";
+      date.textContent = formatDate(entry.modified);
+      row.appendChild(date);
     }
 
     row.addEventListener("click", () => {
@@ -228,6 +269,13 @@ function renderList(state: SftpViewState, side: Side, entries: RemoteEntry[] | L
 
     if (!entry.is_dir) {
       row.addEventListener("dblclick", () => void quickTransfer(state, side, entry));
+
+      row.draggable = true;
+      row.addEventListener("dragstart", (e) => {
+        const payload: DragPayload = { side, name: entry.name, path: entry.path };
+        e.dataTransfer!.setData(DND_MIME, JSON.stringify(payload));
+        e.dataTransfer!.effectAllowed = "copy";
+      });
     }
 
     row.addEventListener("contextmenu", (e) => {
