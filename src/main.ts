@@ -147,7 +147,7 @@ function ensureTab(kind: TabKind, server: ServerSummary): void {
   tab.id = `tab-${key}`;
   tab.className = "tab";
   const label = document.createElement("span");
-  label.textContent = (kind === "term" ? "🖥 " : "📁 ") + server.name;
+  label.textContent = (kind === "term" ? "❯_ " : "⇄ ") + server.name;
   tab.appendChild(label);
 
   tab.addEventListener("click", () => setActiveTab(key));
