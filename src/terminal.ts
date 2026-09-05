@@ -2,6 +2,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getTheme, xtermThemeFor, type ThemeName } from "./theme";
 
 interface TerminalSession {
   serverId: string;
@@ -28,7 +29,7 @@ export async function openTerminal(serverId: string, container: HTMLElement): Pr
     cursorBlink: true,
     fontFamily: "Consolas, 'Cascadia Mono', monospace",
     fontSize: 14,
-    theme: { background: "#181818" },
+    theme: xtermThemeFor(getTheme()),
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
@@ -110,4 +111,12 @@ export function hasTerminal(serverId: string): boolean {
 
 export function refit(serverId: string): void {
   sessions.get(serverId)?.fit.fit();
+}
+
+/** Re-colors every currently open terminal live, without reopening them. */
+export function updateAllTerminalThemes(theme: ThemeName): void {
+  const xtermTheme = xtermThemeFor(theme);
+  for (const s of sessions.values()) {
+    s.term.options.theme = xtermTheme;
+  }
 }
