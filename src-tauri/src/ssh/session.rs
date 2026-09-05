@@ -3,10 +3,18 @@ use std::sync::{Arc, Mutex as StdMutex};
 use base64::Engine;
 use russh::keys::*;
 use russh::*;
+use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
 
 use crate::error::AppError;
+
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub struct ExecResult {
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: Option<i32>,
+}
 
 /// SSH client event handler. We accept every host key at the protocol level
 /// and instead do TOFU (trust-on-first-use) fingerprint comparison ourselves
@@ -93,6 +101,38 @@ impl SshSession {
             },
             observed,
         ))
+    }
+
+    /// Runs `command` on a fresh exec channel over the existing connection,
+    /// collecting stdout/stderr/exit code. Does not touch any open PTY —
+    /// this is what MCP tool calls use, so they never interfere with
+    /// whatever the user is doing in the GUI terminal.
+    pub async fn exec(&self, command: &str) -> Result<ExecResult, AppError> {
+        let mut channel = self.handle.channel_open_session().await?;
+        channel.exec(true, command).await?;
+
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let mut exit_code: Option<i32> = None;
+
+        loop {
+            let Some(msg) = channel.wait().await else {
+                break;
+            };
+            match msg {
+                ChannelMsg::Data { data } => stdout.extend_from_slice(&data),
+                ChannelMsg::ExtendedData { data, ext: 1 } => stderr.extend_from_slice(&data),
+                ChannelMsg::ExtendedData { data, .. } => stdout.extend_from_slice(&data),
+                ChannelMsg::ExitStatus { exit_status } => exit_code = Some(exit_status as i32),
+                _ => {}
+            }
+        }
+
+        Ok(ExecResult {
+            stdout: String::from_utf8_lossy(&stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&stderr).into_owned(),
+            exit_code,
+        })
     }
 
     /// Opens an interactive PTY + shell on a fresh channel and starts a

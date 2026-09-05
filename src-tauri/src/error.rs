@@ -16,6 +16,10 @@ pub enum AppError {
     Io(#[from] std::io::Error),
     #[error("json error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("database error: {0}")]
+    Db(#[from] rusqlite::Error),
+    #[error("unknown or expired confirmation token")]
+    UnknownToken,
     #[error("{0}")]
     Other(String),
 }

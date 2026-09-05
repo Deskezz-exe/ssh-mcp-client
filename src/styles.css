@@ -285,6 +285,59 @@ body {
   background: var(--accent-hover);
 }
 
+/* MCP info card */
+
+#mcp-info-card {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  max-width: 640px;
+}
+
+#mcp-info-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+#mcp-info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+#mcp-info-row code {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: "Consolas", "Cascadia Mono", monospace;
+  font-size: 11px;
+  color: var(--text);
+}
+
+#mcp-info-copy {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 4px;
+  padding: 1px 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+#mcp-info-copy:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
 /* Terminals */
 
 .terminal-container {

@@ -23,6 +23,7 @@
     <script type="module" src="/src/main.ts" defer></script>
     <script type="module" src="/src/terminal.ts" defer></script>
     <script type="module" src="/src/settings.ts" defer></script>
+    <script type="module" src="/src/mcpInfo.ts" defer></script>
   </head>
 
   <body>
@@ -38,6 +39,18 @@
         <section id="dashboard">
           <div id="server-grid"></div>
           <button id="add-server-btn" type="button">+ Добавить сервер</button>
+
+          <div id="mcp-info-card">
+            <div id="mcp-info-title">MCP-сервер для AI-ассистента</div>
+            <div id="mcp-info-row">
+              Слушает: <code id="mcp-info-port">…</code>
+            </div>
+            <div id="mcp-info-row">
+              Подключить Claude Code:
+              <code id="mcp-info-cmd"></code>
+              <button id="mcp-info-copy" type="button" title="Скопировать команду">⧉</button>
+            </div>
+          </div>
         </section>
 
         <div id="terminals"></div>

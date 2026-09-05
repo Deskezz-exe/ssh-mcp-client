@@ -1,5 +1,8 @@
+mod audit;
 mod commands;
+mod core;
 mod error;
+mod mcp;
 mod ssh;
 mod state;
 mod storage;
@@ -10,20 +13,50 @@ use tauri::Manager;
 
 use state::AppState;
 
+const DEFAULT_MCP_PORT: u16 = 47821;
+
+fn load_mcp_port(app_data_dir: &std::path::Path) -> u16 {
+    let path = app_data_dir.join("settings.json");
+    let Ok(data) = std::fs::read_to_string(path) else {
+        return DEFAULT_MCP_PORT;
+    };
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(&data) else {
+        return DEFAULT_MCP_PORT;
+    };
+    value
+        .get("mcp_port")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as u16)
+        .unwrap_or(DEFAULT_MCP_PORT)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tracing_subscriber::fmt::init();
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir().expect("resolve app data dir");
             std::fs::create_dir_all(&app_data_dir).expect("create app data dir");
 
+            let db = audit::open(&app_data_dir).expect("open audit database");
+            let mcp_port = load_mcp_port(&app_data_dir);
+
             let state = Arc::new(AppState {
                 sessions: Mutex::new(Default::default()),
+                pending: Mutex::new(Default::default()),
+                db: Mutex::new(db),
                 app_data_dir,
+                mcp_port,
+                mcp_handle: Mutex::new(None),
             });
+
+            let mcp_handle = tauri::async_runtime::block_on(mcp::start(state.clone(), mcp_port))
+                .expect("failed to start embedded MCP server");
+            tracing::info!("MCP server listening on http://127.0.0.1:{}/mcp", mcp_handle.port);
+            *state.mcp_handle.lock().unwrap() = Some(mcp_handle);
+
             app.manage(state);
 
             Ok(())
@@ -36,7 +69,18 @@ pub fn run() {
             commands::write_pty,
             commands::resize_pty,
             commands::disconnect_server,
+            commands::mcp_server_info,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::ExitRequested { .. } = event {
+            if let Some(state) = app_handle.try_state::<Arc<AppState>>() {
+                if let Some(handle) = state.mcp_handle.lock().unwrap().take() {
+                    handle.shutdown();
+                }
+            }
+        }
+    });
 }
