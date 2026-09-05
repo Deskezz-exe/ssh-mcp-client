@@ -179,20 +179,29 @@ body {
 .server-card {
   position: relative;
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-left: 4px solid var(--card-accent, var(--border));
   border-radius: 10px;
-  padding: 14px;
+  padding: 14px 14px 14px 12px;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.1s;
 }
 
+/* The left accent stripe is the server's identity color and stays put;
+   hover/selected only change the other three sides. */
 .server-card:hover {
-  border-color: var(--border-strong);
+  border-top-color: var(--border-strong);
+  border-right-color: var(--border-strong);
+  border-bottom-color: var(--border-strong);
   transform: translateY(-1px);
 }
 
 .server-card.selected {
-  border-color: var(--accent);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .server-card-top {

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { openTerminal, showTerminal, closeTerminal, hasTerminal, refit } from "./terminal";
+import { colorForServer } from "./cardColors";
 
 interface ServerSummary {
   id: string;
@@ -38,6 +39,7 @@ function renderServerGrid(servers: ServerSummary[]): void {
   for (const s of servers) {
     const card = document.createElement("div");
     card.className = "server-card" + (s.id === selectedServerId ? " selected" : "");
+    card.style.setProperty("--card-accent", colorForServer(s.id));
     card.innerHTML = `
       <div class="server-card-top">
         <span class="dot ${s.connected ? "on" : ""}"></span>
