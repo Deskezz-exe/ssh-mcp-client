@@ -12,7 +12,12 @@ edition = "2021"
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "ssh_mcp_client_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# "staticlib"/"cdylib" are only needed for iOS/Android FFI bridging. This is
+# a Windows desktop app where main.rs links the lib the normal Rust way, so
+# "rlib" alone is enough — and produces far fewer/smaller build artifacts,
+# which also avoids antivirus-scan lock races on large freshly-written
+# archives (see git history for what this was chasing).
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -37,4 +42,11 @@ schemars = "1.2.2"
 chrono = { version = "0.4.45", features = ["serde"] }
 axum = "0.8.9"
 regex = "1.13.1"
+
+# Trimmed debug info: much smaller/faster intermediate build artifacts,
+# which also helps avoid antivirus-scan lock races on Windows (see the
+# crate-type comment above). Line-table-only debug info still gives usable
+# stack traces.
+[profile.dev]
+debug = "line-tables-only"
 
