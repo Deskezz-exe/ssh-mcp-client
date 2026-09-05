@@ -26,6 +26,35 @@ pub struct ConfirmParams {
     pub token: String,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ListDirectoryParams {
+    pub server_id: String,
+    #[serde(default = "default_dir_path")]
+    pub path: String,
+}
+
+fn default_dir_path() -> String {
+    ".".to_string()
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct UploadFileParams {
+    pub server_id: String,
+    #[schemars(description = "Absolute path to the file on this PC (where the servertool app runs), not the remote server")]
+    pub local_path: String,
+    #[schemars(description = "Destination path on the remote server")]
+    pub remote_path: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct DownloadFileParams {
+    pub server_id: String,
+    #[schemars(description = "Path to the file on the remote server")]
+    pub remote_path: String,
+    #[schemars(description = "Absolute destination path on this PC (where the servertool app runs), not the remote server")]
+    pub local_path: String,
+}
+
 #[derive(Clone)]
 pub struct ServertoolMcp {
     state: Arc<AppState>,
@@ -88,6 +117,53 @@ impl ServertoolMcp {
             .map(Json)
             .map_err(|e| e.to_string())
     }
+
+    #[tool(
+        description = "List the contents of a directory on a connected server over SFTP. Path defaults to the login directory (\".\") if omitted."
+    )]
+    async fn list_directory(
+        &self,
+        Parameters(ListDirectoryParams { server_id, path }): Parameters<ListDirectoryParams>,
+    ) -> Result<Json<Vec<core::RemoteEntry>>, String> {
+        core::list_remote_directory(&self.state, &server_id, &path)
+            .await
+            .map(Json)
+            .map_err(|e| e.to_string())
+    }
+
+    #[tool(
+        description = "Upload a file from this PC (where the servertool desktop app runs) to a connected server over SFTP. local_path must be a path on this PC, not the remote server. Returns the number of bytes sent."
+    )]
+    async fn upload_file(
+        &self,
+        Parameters(UploadFileParams {
+            server_id,
+            local_path,
+            remote_path,
+        }): Parameters<UploadFileParams>,
+    ) -> Result<Json<u64>, String> {
+        core::upload_file(&self.state, &server_id, &local_path, &remote_path)
+            .await
+            .map(Json)
+            .map_err(|e| e.to_string())
+    }
+
+    #[tool(
+        description = "Download a file from a connected server to this PC (where the servertool desktop app runs) over SFTP. local_path is where it will be saved on this PC. Returns the number of bytes received."
+    )]
+    async fn download_file(
+        &self,
+        Parameters(DownloadFileParams {
+            server_id,
+            remote_path,
+            local_path,
+        }): Parameters<DownloadFileParams>,
+    ) -> Result<Json<u64>, String> {
+        core::download_file(&self.state, &server_id, &remote_path, &local_path)
+            .await
+            .map(Json)
+            .map_err(|e| e.to_string())
+    }
 }
 
 #[tool_handler(router = self.tool_router)]
@@ -96,7 +172,9 @@ impl ServerHandler for ServertoolMcp {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build()).with_instructions(
             "Controls SSH sessions to the user's own VPS servers via the ssh-mcp-client desktop app. \
              Sessions are shared with whatever the user has open in the app's GUI. \
-             Destructive commands are blocked by run_command until confirmed via confirm_dangerous_command.",
+             Destructive commands are blocked by run_command until confirmed via confirm_dangerous_command. \
+             File tools (list_directory, upload_file, download_file) use SFTP and never delete anything; \
+             local_path in upload_file/download_file refers to this PC, not the remote server.",
         )
     }
 }
