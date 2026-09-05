@@ -145,6 +145,11 @@ async function connectAndOpen(server: ServerSummary): Promise<void> {
   if (!hasTerminal(server.id)) {
     try {
       await openTerminal(server.id, container);
+      // The container was still hidden (display: none) when openTerminal()
+      // called term.open()/fit.fit(), since the session didn't exist yet
+      // for showTerminal() to find above. Show it again now that it does,
+      // so xterm gets a real size to fit into.
+      showTerminal(server.id);
     } catch (e) {
       container.textContent = `Не удалось подключиться: ${String(e)}`;
     }
