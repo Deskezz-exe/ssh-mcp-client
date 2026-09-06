@@ -15,6 +15,17 @@ use state::AppState;
 
 const DEFAULT_MCP_PORT: u16 = 47821;
 
+/// A `data` folder next to the running exe, not the OS's per-user app data
+/// directory — this app ships as a single portable exe (no installer), so
+/// its profiles/settings/audit log travel with it (e.g. on a USB stick)
+/// instead of landing in %APPDATA% on the system drive.
+fn portable_data_dir() -> std::path::PathBuf {
+    let exe = std::env::current_exe().expect("resolve current exe path");
+    exe.parent()
+        .expect("exe path has a parent directory")
+        .join("data")
+}
+
 fn load_mcp_port(app_data_dir: &std::path::Path) -> u16 {
     let path = app_data_dir.join("settings.json");
     let Ok(data) = std::fs::read_to_string(path) else {
@@ -37,7 +48,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let app_data_dir = app.path().app_data_dir().expect("resolve app data dir");
+            let app_data_dir = portable_data_dir();
             std::fs::create_dir_all(&app_data_dir).expect("create app data dir");
 
             let db = audit::open(&app_data_dir).expect("open audit database");
