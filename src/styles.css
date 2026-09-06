@@ -209,7 +209,7 @@ body {
   background: none;
   border: none;
   padding: 0 2px;
-  font-size: 15px;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
   color: var(--text-dim);
@@ -221,31 +221,6 @@ body {
 
 .star:hover {
   color: #e0b03a;
-}
-
-.server-card .delete-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 1;
-  padding: 3px 6px;
-  border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.1s;
-}
-
-.server-card:hover .delete-btn {
-  opacity: 1;
-}
-
-.server-card .delete-btn:hover {
-  color: #fff;
-  background: #b03030;
 }
 
 #add-server-btn {

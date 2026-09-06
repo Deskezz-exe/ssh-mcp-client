@@ -82,16 +82,6 @@ function renderServerGrid(servers: ServerSummary[]): void {
       ]);
     });
 
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "×";
-    delBtn.className = "delete-btn";
-    delBtn.title = "Удалить сервер";
-    delBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      void deleteServer(s);
-    });
-    card.appendChild(delBtn);
-
     grid.appendChild(card);
   }
 }

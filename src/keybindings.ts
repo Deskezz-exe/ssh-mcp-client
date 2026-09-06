@@ -1,5 +1,5 @@
 export interface KeyCombo {
-  key: string;
+  code: string;
   ctrl: boolean;
   shift: boolean;
   alt: boolean;
@@ -16,14 +16,15 @@ export type KeybindAction = keyof Keybindings;
 const STORAGE_KEY = "keybindings";
 
 const DEFAULT_BINDINGS: Keybindings = {
-  copy: { key: "c", ctrl: false, shift: true, alt: false, meta: false },
-  paste: { key: "v", ctrl: false, shift: true, alt: false, meta: false },
+  copy: { code: "KeyC", ctrl: false, shift: true, alt: false, meta: false },
+  paste: { code: "KeyV", ctrl: false, shift: true, alt: false, meta: false },
 };
 
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta", "OS"]);
 
-function normalizeKey(key: string): string {
-  return key.length === 1 ? key.toLowerCase() : key;
+function isValidCombo(value: unknown): value is KeyCombo {
+  const c = value as Partial<KeyCombo> | null;
+  return !!c && typeof c.code === "string" && c.code.length > 0;
 }
 
 export function getKeybindings(): Keybindings {
@@ -32,8 +33,8 @@ export function getKeybindings(): Keybindings {
     if (!raw) return DEFAULT_BINDINGS;
     const parsed = JSON.parse(raw) as Partial<Keybindings>;
     return {
-      copy: parsed.copy ?? DEFAULT_BINDINGS.copy,
-      paste: parsed.paste ?? DEFAULT_BINDINGS.paste,
+      copy: isValidCombo(parsed.copy) ? parsed.copy : DEFAULT_BINDINGS.copy,
+      paste: isValidCombo(parsed.paste) ? parsed.paste : DEFAULT_BINDINGS.paste,
     };
   } catch {
     return DEFAULT_BINDINGS;
@@ -55,9 +56,13 @@ export function hasModifier(combo: KeyCombo): boolean {
   return combo.ctrl || combo.shift || combo.alt || combo.meta;
 }
 
+// event.code is the physical key (e.g. "KeyC"), independent of keyboard
+// layout/language — event.key would give a different character on a
+// Cyrillic layout for the same physical key, which is why combos used to
+// silently fail to match for non-Latin layouts.
 export function comboFromEvent(event: KeyboardEvent): KeyCombo {
   return {
-    key: normalizeKey(event.key),
+    code: event.code,
     ctrl: event.ctrlKey,
     shift: event.shiftKey,
     alt: event.altKey,
@@ -66,21 +71,28 @@ export function comboFromEvent(event: KeyboardEvent): KeyCombo {
 }
 
 export function combosEqual(a: KeyCombo, b: KeyCombo): boolean {
-  return a.key === b.key && a.ctrl === b.ctrl && a.shift === b.shift && a.alt === b.alt && a.meta === b.meta;
+  return a.code === b.code && a.ctrl === b.ctrl && a.shift === b.shift && a.alt === b.alt && a.meta === b.meta;
 }
 
 export function matchesCombo(event: KeyboardEvent, combo: KeyCombo): boolean {
   return combosEqual(comboFromEvent(event), combo);
 }
 
-const SPECIAL_KEY_LABELS: Record<string, string> = {
-  " ": "Space",
-  arrowup: "↑",
-  arrowdown: "↓",
-  arrowleft: "←",
-  arrowright: "→",
-  escape: "Esc",
+const SPECIAL_CODE_LABELS: Record<string, string> = {
+  Space: "Space",
+  ArrowUp: "↑",
+  ArrowDown: "↓",
+  ArrowLeft: "←",
+  ArrowRight: "→",
+  Escape: "Esc",
 };
+
+function labelForCode(code: string): string {
+  if (SPECIAL_CODE_LABELS[code]) return SPECIAL_CODE_LABELS[code];
+  if (code.startsWith("Key")) return code.slice(3);
+  if (code.startsWith("Digit")) return code.slice(5);
+  return code;
+}
 
 export function formatCombo(combo: KeyCombo): string {
   const parts: string[] = [];
@@ -89,9 +101,7 @@ export function formatCombo(combo: KeyCombo): string {
   if (combo.shift) parts.push("Shift");
   if (combo.meta) parts.push("Win");
 
-  const lower = combo.key.toLowerCase();
-  const label = SPECIAL_KEY_LABELS[lower] ?? (combo.key.length === 1 ? combo.key.toUpperCase() : combo.key);
-  parts.push(label);
+  parts.push(labelForCode(combo.code));
 
   return parts.join("+");
 }
